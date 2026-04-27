@@ -1,9 +1,5 @@
 """
 Main orchestrator.
-
-For each configured company, fetch jobs, filter for relevance,
-deduplicate against the SQLite store, and send Telegram notifications
-for new matches.
 """
 
 import sys
@@ -51,25 +47,32 @@ def run():
         company_relevant = 0
         company_new = 0
 
-        # Diagnostic: show the first 5 fetched titles + locations so we can
-        # see what's actually coming back from the API
-        if jobs:
-            print(f"[{name}] sample of first 5 fetched jobs:")
-            for j in jobs[:5]:
-                print(f"    - {j.get('title', '?')} @ {j.get('location', '?')}")
+        # Diagnostic: scan ALL jobs for early-career indicators (broader than just student/intern)
+        # This helps discover what naming conventions the company uses
+        early_career_patterns = [
+            "student", "intern", "סטודנט", "מתמחה",
+            "junior", "graduate", "entry", "early career", "early-career",
+            "new grad", "rotation", "trainee", "associate",
+            "i ",       # for "Engineer I"
+            " i,", " i ", " i)",  # patterns like "Engineer I,"
+        ]
+        early_jobs = []
+        for j in jobs:
+            t = (j.get("title", "") or "").lower()
+            if any(p in t for p in early_career_patterns):
+                early_jobs.append(j)
 
-        # Diagnostic: show titles that contain "student" or "intern" even if
-        # they were rejected by other filter rules — helps tune
-        student_like = [j for j in jobs if any(
-            kw in (j.get("title", "") or "").lower()
-            for kw in ["student", "intern", "סטודנט", "מתמחה"]
-        )]
-        if student_like:
-            print(f"[{name}] {len(student_like)} jobs have student/intern in title:")
-            for j in student_like[:10]:
+        if early_jobs:
+            print(f"[{name}] {len(early_jobs)} jobs match early-career patterns:")
+            for j in early_jobs[:30]:
                 rel, reason = is_relevant(j)
                 marker = "✓" if rel else "✗"
                 print(f"    {marker} {j.get('title', '?')} @ {j.get('location', '?')}  ({reason})")
+        else:
+            print(f"[{name}] NO jobs matched any early-career pattern")
+            print(f"[{name}] sample 10 random titles for context:")
+            for j in jobs[:10]:
+                print(f"    - {j.get('title', '?')} @ {j.get('location', '?')}")
 
         for job in jobs:
             relevant, reason = is_relevant(job)
@@ -106,8 +109,8 @@ def run():
 
     if errors:
         msg = "⚠️ <b>Job hunter run had issues</b>\n\n"
-        for name, fetched, rel, new in per_company_stats:
-            msg += f"• {name}: fetched {fetched}, relevant {rel}, new {new}\n"
+        for n, f, r, nw in per_company_stats:
+            msg += f"• {n}: fetched {f}, relevant {r}, new {nw}\n"
         msg += "\n<b>Errors:</b>\n"
         for e in errors[:5]:
             msg += f"• {e[:200]}\n"
