@@ -1,32 +1,13 @@
 """
 Configuration: companies to monitor, keyword filters, and runtime settings.
-
-Edit this file to add/remove companies or tune which jobs you want to be notified about.
 """
 
 # ----- Companies to monitor -----
-# Format: (company_name, platform, platform_specific_id)
-#
-# Platforms supported:
-#   - "workday": NVIDIA, Qualcomm, ARM use Workday
-#   - "intel_custom": Intel uses Phenom (currently disabled)
-#   - "mobileye_custom": Mobileye Comeet (currently disabled)
-#
-# DISABLED for now (need API discovery):
-#   - Apple: uses custom careers system, not Workday
-#   - Intel: Phenom platform with strict anti-bot, needs HTML scraping
-#   - Mobileye: Comeet API ID needs to be found
-
+# ARM removed: their public careers (careers.arm.com) use Phenom, not Workday.
+# We will add ARM back later via a Phenom-aware scraper.
 COMPANIES = [
-    # name,      platform,   platform_id
     ("NVIDIA",   "workday",  {"tenant": "nvidia",   "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
-    ("Qualcomm", "workday",  {"tenant": "qualcomm", "site": "External",                 "host": "qualcomm.wd5.myworkdayjobs.com"}),
-    ("ARM",      "workday",  {"tenant": "arm",      "site": "External",                 "host": "arm.wd1.myworkdayjobs.com"}),
-
-    # Disabled until we find correct endpoints:
-    # ("Apple",    "apple_custom",    {}),
-    # ("Intel",    "intel_custom",    {}),
-    # ("Mobileye", "mobileye_custom", {}),
+    ("Qualcomm", "workday",  {"tenant": "qualcomm", "site": "External",                 "host": "qualcomm.wd12.myworkdayjobs.com"}),
 ]
 
 # ----- Location filters -----
@@ -47,43 +28,65 @@ LOCATION_KEYWORDS = [
     "ness ziona", "נס ציונה",
     "rosh haayin", "ראש העין",
     "or yehuda", "אור יהודה",
-    "matam", "מת\"ם",
+    "matam", "מתם",
 ]
 
-# ----- Positive keywords -----
-POSITIVE_KEYWORDS = [
-    # Student / early career
-    "student", "intern", "internship", "סטודנט", "סטודנטית", "מתמחה",
-    "junior", "ג'וניור", "graduate", "entry level", "entry-level",
-    "new grad", "early career", "early-career",
+# ----- TIER 1: Student-level indicators -----
+STUDENT_LEVEL_TITLE_KEYWORDS = [
+    "student", "intern", "internship",
+    "סטודנט", "סטודנטית", "מתמחה",
+    "working student", "part time", "part-time",
+]
 
-    # Electrical engineering relevant
+# ----- TIER 2: EE-relevant field indicators -----
+FIELD_RELEVANCE_KEYWORDS = [
     "hardware", "חומרה",
     "fpga", "vlsi", "asic", "rtl", "verilog", "systemverilog",
     "firmware", "embedded", "מוטמע",
-    "dsp", "rf", "analog", "אנלוגי", "digital design",
-    "verification", "וריפיקציה", "physical design",
+    "dsp", "rf", "analog", "אנלוגי",
+    "digital design", "physical design",
+    "verification", "וריפיקציה",
     "silicon", "chip design", "soc",
     "electrical", "חשמל", "אלקטרוניקה",
-    "signal", "אותות", "communication", "תקשורת",
+    "signal processing", "signal integrity",
+    "communication", "תקשורת",
     "low power", "power management",
+    "circuit", "מעגל",
+    "pcb", "layout",
+    "cpu", "gpu",
+    "post silicon", "post-silicon",
+    "validation", "ולידציה",
 ]
 
 # ----- Negative title keywords -----
 NEGATIVE_TITLE_KEYWORDS = [
-    "senior", "principal", "staff", "lead", "manager", "director",
+    # Seniority
+    "senior", "principal", "staff", "lead ", " lead", "manager", "director",
     "vp ", "vice president", "head of", "chief",
     "expert", "מומחה",
+
+    # PhD-only roles (your SIL is BSc 3rd year)
+    "phd", "ph.d", "ph d", "doctoral", "doctorate",
+    "post doc", "postdoc", "post-doc",
+
+    # Years of experience
     "5+ years", "7+ years", "10+ years",
+
+    # Wrong fields
+    "marketing", "sales", "hr ", "human resources",
+    "finance", "accounting", "legal",
+    "recruiter", "recruiting",
 ]
 
+# ----- Negative description phrases -----
 NEGATIVE_DESCRIPTION_PHRASES = [
-    "5+ years of experience",
-    "7+ years of experience",
-    "10+ years of experience",
-    "minimum of 5 years",
-    "minimum of 7 years",
-    "minimum of 10 years",
+    "5+ years of experience", "7+ years of experience", "10+ years of experience",
+    "minimum of 5 years", "minimum of 7 years", "minimum of 10 years",
+    "at least 5 years", "at least 7 years", "at least 10 years",
+    "phd required", "ph.d. required", "doctorate required",
+    "phd in ", "ph.d. in ",
+    "full-time position", "full time position",
+    "this is a full-time", "this is a full time",
 ]
 
 # ----- Runtime settings -----
