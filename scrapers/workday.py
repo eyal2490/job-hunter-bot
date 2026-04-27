@@ -107,6 +107,79 @@ def fetch_workday(company_name, platform_id):
         offset += page_size
 
     print(f"[{company_name}] workday fetched {len(all_jobs)} jobs total")
+    return all_jobs      - host:   full host (e.g. "nvidia.wd5.myworkdayjobs.com")
+
+    Strategy: fetch all jobs, then filter on our side. Workday's
+    location facet IDs are tenant-specific and would require manual
+    discovery per company, so we let our config.LOCATION_KEYWORDS
+    do the Israel filter.
+    """
+    tenant = platform_id["tenant"]
+    site = platform_id["site"]
+    host = platform_id["host"]
+
+    api_url = f"https://{host}/wday/cxs/{tenant}/{site}/jobs"
+
+    all_jobs = []
+    offset = 0
+    page_size = 20  # Workday's typical page size
+
+    # Fetch up to 5 pages = 100 jobs per company per run.
+    # That's plenty: we only care about NEW postings each run.
+    for page in range(5):
+        payload = {
+            "appliedFacets": {},
+            "limit": page_size,
+            "offset": offset,
+            "searchText": "",
+        }
+
+        try:
+            r = requests.post(
+                api_url,
+                json=payload,
+                headers=_headers(host, site),
+                timeout=REQUEST_TIMEOUT,
+            )
+        except Exception as e:
+            print(f"[{company_name}] workday request failed: {e}")
+            break
+
+        if r.status_code != 200:
+            print(f"[{company_name}] workday returned {r.status_code}: {r.text[:150]}")
+            break
+
+        try:
+            data = r.json()
+        except Exception:
+            print(f"[{company_name}] workday non-JSON response")
+            break
+
+        postings = data.get("jobPostings", [])
+        if not postings:
+            break
+
+        for posting in postings:
+            title = posting.get("title", "")
+            location = posting.get("locationsText", "")
+            external_path = posting.get("externalPath", "")
+            full_url = f"https://{host}{external_path}" if external_path else ""
+
+            all_jobs.append({
+                "title": title,
+                "location": location,
+                "company": company_name,
+                "url": full_url,
+                "description": "",
+            })
+
+        # Stop if we received fewer than page_size — that was the last page
+        if len(postings) < page_size:
+            break
+
+        offset += page_size
+
+    print(f"[{company_name}] workday fetched {len(all_jobs)} jobs total")
     return all_jobs
 
     api_url = f"https://{host}/wday/cxs/{tenant}/{site}/jobs"
