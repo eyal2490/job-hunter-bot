@@ -5,9 +5,10 @@ Many large companies use Workday hosted careers product
 (NVIDIA, Qualcomm, ARM, etc.). The product exposes a JSON API
 on /wday/cxs/{tenant}/{site}/jobs that accepts a POST.
 
-Key requirement: the Referer header must point to the careers landing
-page including the /en-US/ locale path. Workday rejects requests
-with a generic Referer.
+Key requirements:
+  - The Referer header must point to the careers landing page
+    including /en-US/ locale path
+  - The user-facing URL is /en-US/{site}{externalPath}, not just {externalPath}
 """
 
 import requests
@@ -75,7 +76,12 @@ def fetch_workday(company_name, platform_id):
             title = posting.get("title", "")
             location = posting.get("locationsText", "")
             external_path = posting.get("externalPath", "")
-            full_url = f"https://{host}{external_path}" if external_path else ""
+            # Correct URL format: https://{host}/en-US/{site}{externalPath}
+            # externalPath is something like "/job/Yokneam/Software-Engineer_JR12345"
+            if external_path:
+                full_url = f"https://{host}/en-US/{site}{external_path}"
+            else:
+                full_url = f"https://{host}/en-US/{site}"
 
             all_jobs.append({
                 "title": title,
