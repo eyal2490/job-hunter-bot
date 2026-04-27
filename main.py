@@ -4,8 +4,6 @@ Main orchestrator.
 For each configured company, fetch jobs, filter for relevance,
 deduplicate against the SQLite store, and send Telegram notifications
 for new matches.
-
-This script is invoked by GitHub Actions on a schedule.
 """
 
 import sys
@@ -17,18 +15,11 @@ from storage import init_db, is_seen, mark_seen, make_hash, count_seen
 from notifier import send_job, send_status
 
 from scrapers.workday import fetch_workday
-from scrapers.intel import fetch_intel
-from scrapers.mobileye import fetch_mobileye
 
 
 def fetch_company(name, platform, platform_id):
-    """Dispatch to the appropriate scraper based on platform."""
     if platform == "workday":
         return fetch_workday(name, platform_id)
-    if platform == "intel_custom":
-        return fetch_intel(name)
-    if platform == "mobileye_custom":
-        return fetch_mobileye(name)
     print(f"[{name}] unknown platform: {platform}")
     return []
 
@@ -60,6 +51,26 @@ def run():
         company_relevant = 0
         company_new = 0
 
+        # Diagnostic: show the first 5 fetched titles + locations so we can
+        # see what's actually coming back from the API
+        if jobs:
+            print(f"[{name}] sample of first 5 fetched jobs:")
+            for j in jobs[:5]:
+                print(f"    - {j.get('title', '?')} @ {j.get('location', '?')}")
+
+        # Diagnostic: show titles that contain "student" or "intern" even if
+        # they were rejected by other filter rules — helps tune
+        student_like = [j for j in jobs if any(
+            kw in (j.get("title", "") or "").lower()
+            for kw in ["student", "intern", "סטודנט", "מתמחה"]
+        )]
+        if student_like:
+            print(f"[{name}] {len(student_like)} jobs have student/intern in title:")
+            for j in student_like[:10]:
+                rel, reason = is_relevant(j)
+                marker = "✓" if rel else "✗"
+                print(f"    {marker} {j.get('title', '?')} @ {j.get('location', '?')}  ({reason})")
+
         for job in jobs:
             relevant, reason = is_relevant(job)
             if not relevant:
@@ -71,7 +82,6 @@ def run():
                 continue
             company_new += 1
 
-            # Mark as seen FIRST, then notify. If telegram fails we don't re-notify.
             mark_seen(h, job["company"], job["title"], job.get("url", ""))
 
             if notified < MAX_JOBS_PER_RUN:
@@ -88,15 +98,12 @@ def run():
         per_company_stats.append((name, fetched, company_relevant, company_new))
         print(f"[{name}] fetched={fetched} relevant={company_relevant} new={company_new}")
 
-    # Summary
     print("\n=== Summary ===")
     print(f"Total fetched:  {total_fetched}")
     print(f"Total relevant: {total_relevant}")
     print(f"Total new:      {total_new}")
     print(f"Notified:       {notified}")
 
-    # Send a status message ONLY on first run (when DB was empty) or on errors,
-    # to avoid spamming Telegram every 15 minutes.
     if errors:
         msg = "⚠️ <b>Job hunter run had issues</b>\n\n"
         for name, fetched, rel, new in per_company_stats:
