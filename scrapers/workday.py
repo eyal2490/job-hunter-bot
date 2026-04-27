@@ -2,13 +2,14 @@
 Workday scraper.
 
 Many large companies use Workday hosted careers product.
-The product exposes a JSON API on /wday/cxs/{tenant}/{site}/jobs
-that accepts a POST.
+Exposes a JSON API on /wday/cxs/{tenant}/{site}/jobs that accepts a POST.
 
 Key requirements:
-  - The Referer header must point to the careers landing page
-    including /en-US/ locale path
-  - The user-facing URL is /en-US/{site}{externalPath}, not just {externalPath}
+  - Referer header must point to the careers landing page with /en-US/ locale
+  - User-facing URL is /en-US/{site}{externalPath}
+  - Use searchText to filter on the server side - companies can have thousands
+    of global jobs, and the listing endpoint only returns 100 per page in
+    arbitrary order
 """
 
 import requests
@@ -30,20 +31,23 @@ def fetch_workday(company_name, platform_id):
     tenant = platform_id["tenant"]
     site = platform_id["site"]
     host = platform_id["host"]
+    # Allow per-company override of the search term (some companies need
+    # different wording, e.g. "Tel Aviv" if "Israel" returns nothing)
+    search_text = platform_id.get("search_text", "Israel")
 
     api_url = f"https://{host}/wday/cxs/{tenant}/{site}/jobs"
-    print(f"[{company_name}] calling {api_url}")
+    print(f"[{company_name}] calling {api_url} with searchText={search_text!r}")
 
     all_jobs = []
     offset = 0
     page_size = 20
 
-    for page in range(5):
+    for page in range(10):  # up to 200 jobs - enough for any single country
         payload = {
             "appliedFacets": {},
             "limit": page_size,
             "offset": offset,
-            "searchText": "",
+            "searchText": search_text,
         }
 
         try:
@@ -67,7 +71,6 @@ def fetch_workday(company_name, platform_id):
             print(f"[{company_name}] workday non-JSON response. First 200 chars: {r.text[:200]}")
             break
 
-        # Diagnostic: show the response shape on first page
         if page == 0:
             total = data.get("total", "unknown")
             print(f"[{company_name}] response total field: {total}")
@@ -75,7 +78,6 @@ def fetch_workday(company_name, platform_id):
         postings = data.get("jobPostings", [])
         if not postings:
             if page == 0:
-                # Diagnostic: print top-level keys to debug empty response
                 print(f"[{company_name}] empty jobPostings. Response keys: {list(data.keys())[:10]}")
             break
 
