@@ -3,14 +3,26 @@ Configuration: companies to monitor, keyword filters, and runtime settings.
 """
 
 # ----- Companies to monitor -----
-# ARM removed: their public careers (careers.arm.com) use Phenom, not Workday.
-# We will add ARM back later via a Phenom-aware scraper.
+# Currently active:
+#   - NVIDIA: works on Workday with Israel search filter
+#
+# Disabled (need different scraping approach):
+#   - Qualcomm: their wd12 endpoint requires auth (returns total=0 for guests)
+#   - ARM: uses Phenom (careers.arm.com), not Workday
+#   - Apple: custom careers system, not Workday
+#   - Intel: Phenom with strict anti-bot
+#   - Mobileye: Comeet API ID needs to be found
+
 COMPANIES = [
-    ("NVIDIA",   "workday",  {"tenant": "nvidia",   "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
-    ("Qualcomm", "workday",  {"tenant": "qualcomm", "site": "External",                 "host": "qualcomm.wd12.myworkdayjobs.com"}),
+    ("NVIDIA", "workday", {
+        "tenant": "nvidia",
+        "site": "NVIDIAExternalCareerSite",
+        "host": "nvidia.wd5.myworkdayjobs.com",
+        "search_text": "Israel",
+    }),
 ]
 
-# ----- Location filters -----
+# ----- Location filters (final check on our side) -----
 LOCATION_KEYWORDS = [
     "israel", "ישראל",
     "tel aviv", "תל אביב", "תל-אביב",
@@ -31,7 +43,7 @@ LOCATION_KEYWORDS = [
     "matam", "מתם",
 ]
 
-# ----- TIER 1: Student-level indicators -----
+# ----- TIER 1: Student-level indicators (must appear in title) -----
 STUDENT_LEVEL_TITLE_KEYWORDS = [
     "student", "intern", "internship",
     "סטודנט", "סטודנטית", "מתמחה",
@@ -60,19 +72,12 @@ FIELD_RELEVANCE_KEYWORDS = [
 
 # ----- Negative title keywords -----
 NEGATIVE_TITLE_KEYWORDS = [
-    # Seniority
     "senior", "principal", "staff", "lead ", " lead", "manager", "director",
     "vp ", "vice president", "head of", "chief",
     "expert", "מומחה",
-
-    # PhD-only roles (your SIL is BSc 3rd year)
     "phd", "ph.d", "ph d", "doctoral", "doctorate",
     "post doc", "postdoc", "post-doc",
-
-    # Years of experience
     "5+ years", "7+ years", "10+ years",
-
-    # Wrong fields
     "marketing", "sales", "hr ", "human resources",
     "finance", "accounting", "legal",
     "recruiter", "recruiting",
