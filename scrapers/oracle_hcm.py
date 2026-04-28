@@ -11,7 +11,7 @@ We hit the underlying JSON API directly:
     GET https://{host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions
 
 Critical: results are paginated 50 at a time, sorted newest-first by
-POSTING_DATES_DESC. We fetch many pages so main.py can apply its own
+POSTING_DATES_DESC. We fetch all pages so main.py can apply its own
 Israel filter the same way it does for Workday.
 
 The `finder` query parameter uses a specific format documented by Oracle:
@@ -20,8 +20,13 @@ Note: SEMICOLON between the finder name and first param, COMMAS between
 subsequent params.
 
 The `expand=requisitionList` parameter is required - without it the
-response contains only the metadata wrapper (TotalJobsCount, hasMore,
-facets) and the actual job rows are not inlined.
+response contains only the metadata wrapper (TotalJobsCount, facets)
+and the actual job rows are not inlined.
+
+Pagination: we use TotalJobsCount from the wrapper to decide when to
+stop. The wrapper does NOT have a hasMore field (despite Oracle using
+hasMore at the top level of the outer response, which means something
+different there).
 
 Currently used by:
     Texas Instruments  (host=edbz.fa.us2.oraclecloud.com, site=CX)
@@ -65,6 +70,7 @@ def fetch_oracle_hcm(company_name, platform_id):
     # because we filter by location (Israel) on our side and a global
     # company may have many non-Israel jobs in the most-recent list.
     max_pages = 25
+    total_count = None  # filled in from the first response
 
     for page in range(max_pages):
         params = {
@@ -97,15 +103,15 @@ def fetch_oracle_hcm(company_name, platform_id):
             break
 
         # Oracle wraps the list one level deep:
-        #   { "items": [ { "TotalJobsCount": ..., "hasMore": ..., "requisitionList": [...] } ] }
+        #   { "items": [ { "TotalJobsCount": ..., "requisitionList": [...] } ] }
         items = data.get("items") or []
         if not items:
             break
         wrapper = items[0]
 
         if page == 0:
-            total = wrapper.get("TotalJobsCount", "unknown")
-            print(f"[{company_name}] response total field: {total}")
+            total_count = wrapper.get("TotalJobsCount", 0) or 0
+            print(f"[{company_name}] response total field: {total_count}")
 
         postings = wrapper.get("requisitionList") or []
         if not postings:
@@ -131,8 +137,10 @@ def fetch_oracle_hcm(company_name, platform_id):
                 "posted_on": str(posted_on),
             })
 
-        # Oracle signals end-of-pagination on the wrapper.
-        if not wrapper.get("hasMore", False):
+        # Stop conditions:
+        #   1. We've now fetched at least as many as TotalJobsCount said exist.
+        #   2. This page returned fewer than page_size (last page is short).
+        if total_count and offset + len(postings) >= total_count:
             break
         if len(postings) < page_size:
             break
