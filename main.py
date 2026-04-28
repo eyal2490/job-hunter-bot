@@ -1,5 +1,8 @@
 """
 Main orchestrator.
+
+For each configured company, fetch jobs (newest first), filter for relevance,
+deduplicate against the SQLite store, and send Telegram notifications.
 """
 
 import sys
@@ -32,7 +35,7 @@ def run():
     errors = []
 
     for name, platform, platform_id in COMPANIES:
-        print(f"\n=== {name} ({platform}) ===")
+        print(f"\n=== {name} ===")
         try:
             jobs = fetch_company(name, platform, platform_id)
         except Exception as e:
@@ -47,32 +50,21 @@ def run():
         company_relevant = 0
         company_new = 0
 
-        # Diagnostic: scan ALL jobs for early-career indicators (broader than just student/intern)
-        # This helps discover what naming conventions the company uses
-        early_career_patterns = [
-            "student", "intern", "סטודנט", "מתמחה",
-            "junior", "graduate", "entry", "early career", "early-career",
-            "new grad", "rotation", "trainee", "associate",
-            "i ",       # for "Engineer I"
-            " i,", " i ", " i)",  # patterns like "Engineer I,"
+        # Diagnostic: log Israel-based jobs found in this batch
+        israel_jobs = [
+            j for j in jobs
+            if "israel" in (j.get("location", "") or "").lower()
         ]
-        early_jobs = []
-        for j in jobs:
-            t = (j.get("title", "") or "").lower()
-            if any(p in t for p in early_career_patterns):
-                early_jobs.append(j)
+        print(f"[{name}] fetched {fetched} total, {len(israel_jobs)} in Israel")
 
-        if early_jobs:
-            print(f"[{name}] {len(early_jobs)} jobs match early-career patterns:")
-            for j in early_jobs[:30]:
+        # Show all Israel jobs (whether relevant or not) so we know what's there
+        if israel_jobs:
+            print(f"[{name}] Israel jobs sample:")
+            for j in israel_jobs[:15]:
                 rel, reason = is_relevant(j)
                 marker = "✓" if rel else "✗"
-                print(f"    {marker} {j.get('title', '?')} @ {j.get('location', '?')}  ({reason})")
-        else:
-            print(f"[{name}] NO jobs matched any early-career pattern")
-            print(f"[{name}] sample 10 random titles for context:")
-            for j in jobs[:10]:
-                print(f"    - {j.get('title', '?')} @ {j.get('location', '?')}")
+                posted = j.get("posted_on", "")
+                print(f"    {marker} [{posted}] {j.get('title', '?')} @ {j.get('location', '?')}")
 
         for job in jobs:
             relevant, reason = is_relevant(job)
@@ -90,7 +82,7 @@ def run():
             if notified < MAX_JOBS_PER_RUN:
                 if send_job(job):
                     notified += 1
-                    print(f"  + sent: {job['title']}")
+                    print(f"  + sent to Telegram: {job['title']}")
                 else:
                     print(f"  ! telegram failed: {job['title']}")
             else:
