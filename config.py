@@ -32,7 +32,6 @@ COMPANIES = [
     ("Mobileye",          "phenom",       {"host": "careers.mobileye.com",                                    "country": "Israel"}),
 
     # Eightfold AI-hosted careers pages
-    ("Qualcomm",          "eightfold",    {"tenant": "qualcomm",          "domain": "qualcomm.com",           "location": "Israel"}),
 ]
 
 # ----- LinkedIn companies (LinkedIn guest API) -----
