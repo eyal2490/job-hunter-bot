@@ -2,12 +2,17 @@
 Configuration: companies to monitor, keyword filters, and runtime settings.
 """
 
-# ----- Direct-scrape companies (Workday, Oracle HCM, Apple direct, Phenom, ...) -----
+# ----- Direct-scrape companies (Workday, Oracle HCM, Apple direct, Phenom, Eightfold, ...) -----
 # Each entry: (display_name, platform, platform_id_dict)
 # Companies can also appear in LINKEDIN_COMPANIES below — coverage between
 # the two sources is imperfect, and main.py's dedup uses (company, url, title)
 # so a job that appears on both sources is intentionally surfaced from each
 # (different URLs -> different hashes).
+#
+# Mobileye note: Mobileye sits behind CloudFront bot detection that we
+# can't currently bypass without a headless browser, so the direct scraper
+# returns 403. We keep the entry in case the bot detection relaxes;
+# coverage in the meantime comes from LinkedIn.
 COMPANIES = [
     # Workday-based careers pages
     ("NVIDIA",            "workday",      {"tenant": "nvidia",            "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
@@ -23,8 +28,11 @@ COMPANIES = [
     # Apple's own careers site (server-side rendered HTML)
     ("Apple",             "apple_direct", {}),
 
-    # Phenom-hosted careers pages
+    # Phenom-hosted careers pages (Mobileye currently 403s — see note above)
     ("Mobileye",          "phenom",       {"host": "careers.mobileye.com",                                    "country": "Israel"}),
+
+    # Eightfold AI-hosted careers pages
+    ("Qualcomm",          "eightfold",    {"tenant": "qualcomm",          "domain": "qualcomm.com",           "location": "Israel"}),
 ]
 
 # ----- LinkedIn companies (LinkedIn guest API) -----
