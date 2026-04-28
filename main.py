@@ -2,13 +2,14 @@
 Main orchestrator.
 
 Fetches jobs from:
-  1. Workday-based careers pages (NVIDIA direct)
-  2. LinkedIn guest API for many companies at once
+  1. Workday-based careers pages (NVIDIA, Intel, Marvell, Broadcom,
+     Samsung, Motorola, ...)
+  2. Oracle Recruiting Cloud HCM-based careers pages (Texas Instruments, ...)
+  3. LinkedIn guest API for many companies at once
 
 Filters for relevance, deduplicates against SQLite store,
 and sends Telegram notifications for new matches.
 """
-
 import sys
 import traceback
 
@@ -18,12 +19,15 @@ from storage import init_db, is_seen, mark_seen, make_hash, count_seen
 from notifier import send_job, send_status
 
 from scrapers.workday import fetch_workday
+from scrapers.oracle_hcm import fetch_oracle_hcm
 from scrapers.linkedin_scraper import fetch_linkedin_all
 
 
 def fetch_company(name, platform, platform_id):
     if platform == "workday":
         return fetch_workday(name, platform_id)
+    if platform == "oracle_hcm":
+        return fetch_oracle_hcm(name, platform_id)
     print(f"[{name}] unknown platform: {platform}")
     return []
 
@@ -38,9 +42,9 @@ def run():
     notified = 0
     errors = []
 
-    # ----- Source 1: Workday-based companies -----
+    # ----- Source 1+2: per-company scrapers (Workday, Oracle HCM, ...) -----
     for name, platform, platform_id in COMPANIES:
-        print(f"\n=== {name} (workday) ===")
+        print(f"\n=== {name} ({platform}) ===")
         try:
             jobs = fetch_company(name, platform, platform_id)
         except Exception as e:
@@ -48,11 +52,10 @@ def run():
             traceback.print_exc()
             errors.append(f"{name}: {e}")
             continue
-
         notified += _process_jobs(name, jobs, notified)
         total_fetched += len(jobs)
 
-    # ----- Source 2: LinkedIn (all configured companies) -----
+    # ----- Source 3: LinkedIn (all configured companies) -----
     print(f"\n=== LinkedIn ===")
     try:
         linkedin_jobs = fetch_linkedin_all()
@@ -98,13 +101,10 @@ def _process_jobs(source_label, jobs, current_notified):
         relevant, reason = is_relevant(job)
         if not relevant:
             continue
-
         h = make_hash(job["company"], job.get("url", ""), job["title"])
         if is_seen(h):
             continue
-
         mark_seen(h, job["company"], job["title"], job.get("url", ""))
-
         if current_notified + sent_count < MAX_JOBS_PER_RUN:
             if send_job(job):
                 sent_count += 1
@@ -113,7 +113,6 @@ def _process_jobs(source_label, jobs, current_notified):
                 print(f"  ! telegram failed: {job['title']}")
         else:
             print(f"  · queued (over per-run cap): {job['title']}")
-
     return sent_count
 
 
