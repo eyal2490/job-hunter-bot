@@ -2,20 +2,28 @@
 Configuration: companies to monitor, keyword filters, and runtime settings.
 """
 
-# ----- Workday companies (direct careers page scraping) -----
-# All sourced from URLs your SIL shared - tenant/site/host extracted.
+# ----- Direct-scrape companies (Workday, Oracle HCM, ...) -----
+# Each entry: (display_name, platform, platform_id_dict)
+# Companies can also appear in LINKEDIN_COMPANIES below — coverage between
+# the two sources is imperfect, and main.py's dedup uses (company, title)
+# so the same job fetched from both sources only notifies once.
 COMPANIES = [
-    ("NVIDIA",   "workday", {"tenant": "nvidia",            "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
-    ("Intel",    "workday", {"tenant": "intel",             "site": "External",                 "host": "intel.wd1.myworkdayjobs.com"}),
-    ("Marvell",  "workday", {"tenant": "marvell",           "site": "MarvellCareers",           "host": "marvell.wd1.myworkdayjobs.com"}),
-    ("Broadcom", "workday", {"tenant": "broadcom",          "site": "External_Career",          "host": "broadcom.wd1.myworkdayjobs.com"}),
-    ("Samsung",  "workday", {"tenant": "sec",               "site": "Samsung_Careers",          "host": "sec.wd3.myworkdayjobs.com"}),
-    ("Motorola", "workday", {"tenant": "motorolasolutions", "site": "Careers",                  "host": "motorolasolutions.wd5.myworkdayjobs.com"}),
+    # Workday-based careers pages
+    ("NVIDIA",            "workday",    {"tenant": "nvidia",            "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
+    ("Intel",             "workday",    {"tenant": "intel",             "site": "External",                 "host": "intel.wd1.myworkdayjobs.com"}),
+    ("Marvell",           "workday",    {"tenant": "marvell",           "site": "MarvellCareers",           "host": "marvell.wd1.myworkdayjobs.com"}),
+    ("Broadcom",          "workday",    {"tenant": "broadcom",          "site": "External_Career",          "host": "broadcom.wd1.myworkdayjobs.com"}),
+    ("Samsung",           "workday",    {"tenant": "sec",               "site": "Samsung_Careers",          "host": "sec.wd3.myworkdayjobs.com"}),
+    ("Motorola",          "workday",    {"tenant": "motorolasolutions", "site": "Careers",                  "host": "motorolasolutions.wd5.myworkdayjobs.com"}),
+
+    # Oracle Recruiting Cloud HCM-based careers pages
+    ("Texas Instruments", "oracle_hcm", {"host": "edbz.fa.us2.oraclecloud.com",                              "site": "CX"}),
 ]
 
 # ----- LinkedIn companies (LinkedIn guest API) -----
-# Used for companies NOT on Workday or where Workday isn't reliably reachable.
-# Includes your SIL's top priorities that aren't in COMPANIES above.
+# Includes companies also scraped directly above — coverage between the two
+# sources isn't identical, so we keep both for breadth. main.py dedups on
+# (company, title) so duplicates across sources collapse.
 LINKEDIN_COMPANIES = [
     "Google",
     "Amazon",
