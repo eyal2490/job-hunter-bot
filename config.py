@@ -2,28 +2,31 @@
 Configuration: companies to monitor, keyword filters, and runtime settings.
 """
 
-# ----- Direct-scrape companies (Workday, Oracle HCM, ...) -----
+# ----- Direct-scrape companies (Workday, Oracle HCM, Apple direct, ...) -----
 # Each entry: (display_name, platform, platform_id_dict)
 # Companies can also appear in LINKEDIN_COMPANIES below — coverage between
-# the two sources is imperfect, and main.py's dedup uses (company, title)
-# so the same job fetched from both sources only notifies once.
+# the two sources is imperfect, and main.py's dedup uses (company, url, title)
+# so a job that appears on both sources is intentionally surfaced from each
+# (different URLs -> different hashes).
 COMPANIES = [
     # Workday-based careers pages
-    ("NVIDIA",            "workday",    {"tenant": "nvidia",            "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
-    ("Intel",             "workday",    {"tenant": "intel",             "site": "External",                 "host": "intel.wd1.myworkdayjobs.com"}),
-    ("Marvell",           "workday",    {"tenant": "marvell",           "site": "MarvellCareers",           "host": "marvell.wd1.myworkdayjobs.com"}),
-    ("Broadcom",          "workday",    {"tenant": "broadcom",          "site": "External_Career",          "host": "broadcom.wd1.myworkdayjobs.com"}),
-    ("Samsung",           "workday",    {"tenant": "sec",               "site": "Samsung_Careers",          "host": "sec.wd3.myworkdayjobs.com"}),
-    ("Motorola",          "workday",    {"tenant": "motorolasolutions", "site": "Careers",                  "host": "motorolasolutions.wd5.myworkdayjobs.com"}),
+    ("NVIDIA",            "workday",      {"tenant": "nvidia",            "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
+    ("Intel",             "workday",      {"tenant": "intel",             "site": "External",                 "host": "intel.wd1.myworkdayjobs.com"}),
+    ("Marvell",           "workday",      {"tenant": "marvell",           "site": "MarvellCareers",           "host": "marvell.wd1.myworkdayjobs.com"}),
+    ("Broadcom",          "workday",      {"tenant": "broadcom",          "site": "External_Career",          "host": "broadcom.wd1.myworkdayjobs.com"}),
+    ("Samsung",           "workday",      {"tenant": "sec",               "site": "Samsung_Careers",          "host": "sec.wd3.myworkdayjobs.com"}),
+    ("Motorola",          "workday",      {"tenant": "motorolasolutions", "site": "Careers",                  "host": "motorolasolutions.wd5.myworkdayjobs.com"}),
 
     # Oracle Recruiting Cloud HCM-based careers pages
-    ("Texas Instruments", "oracle_hcm", {"host": "edbz.fa.us2.oraclecloud.com",                              "site": "CX"}),
+    ("Texas Instruments", "oracle_hcm",   {"host": "edbz.fa.us2.oraclecloud.com",                              "site": "CX"}),
+
+    # Apple's own careers site (server-side rendered HTML)
+    ("Apple",             "apple_direct", {}),
 ]
 
 # ----- LinkedIn companies (LinkedIn guest API) -----
 # Includes companies also scraped directly above — coverage between the two
-# sources isn't identical, so we keep both for breadth. main.py dedups on
-# (company, title) so duplicates across sources collapse.
+# sources isn't identical, so we keep both for breadth.
 LINKEDIN_COMPANIES = [
     "Google",
     "Amazon",
