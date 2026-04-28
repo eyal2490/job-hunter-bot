@@ -17,7 +17,11 @@ Israel filter the same way it does for Workday.
 The `finder` query parameter uses a specific format documented by Oracle:
     finder=<finderName>;<param>=<value>,<param>=<value>,...
 Note: SEMICOLON between the finder name and first param, COMMAS between
-subsequent params. Getting this wrong yields a 400 "is not valid" error.
+subsequent params.
+
+The `expand=requisitionList` parameter is required - without it the
+response contains only the metadata wrapper (TotalJobsCount, hasMore,
+facets) and the actual job rows are not inlined.
 
 Currently used by:
     Texas Instruments  (host=edbz.fa.us2.oraclecloud.com, site=CX)
@@ -37,7 +41,7 @@ def _headers(host):
 
 
 def _build_finder(site, offset, limit):
-    # Format per Oracle docs: finderName;param=val,param=val,...
+    # Oracle docs format: finderName;param=val,param=val,...
     # Semicolon after finder name, commas between params.
     params = [
         f"siteNumber={site}",
@@ -65,6 +69,9 @@ def fetch_oracle_hcm(company_name, platform_id):
     for page in range(max_pages):
         params = {
             "onlyData": "true",
+            # expand=requisitionList is REQUIRED. Without it Oracle returns
+            # only the metadata wrapper and the actual job list is empty.
+            "expand": "requisitionList",
             "finder": _build_finder(site, offset, page_size),
         }
 
