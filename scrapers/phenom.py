@@ -10,11 +10,11 @@ The endpoint takes a JSON body with ddoKey="refineSearch" and returns
 paginated job listings. No authentication required for the public
 career-site read path.
 
-What this module does:
-- Pulls jobs from a Phenom-hosted careers site, paginated 50 at a time.
-- Optionally narrows by country at fetch time (more efficient than
-  pulling everything and filtering).
-- Normalizes results into the bot's standard dict shape.
+Note: Phenom sites typically sit behind CloudFront, which rejects
+requests that don't look like a real browser. We set the full set of
+headers Chrome sends when paginating search results, including the
+Sec-Fetch-* family. A plain Python requests-default User-Agent or a
+minimal header set will get a 403 from CloudFront.
 
 Currently used by:
     Mobileye  (host=careers.mobileye.com, country=Israel)
@@ -24,20 +24,27 @@ from config import REQUEST_TIMEOUT, USER_AGENT
 
 
 def _headers(host):
+    """Mimic Chrome's headers when paginating search results on a Phenom site."""
     return {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+        "Accept": "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9",
-        "User-Agent": USER_AGENT,
+        "Content-Type": "application/json",
         "Origin": f"https://{host}",
         "Referer": f"https://{host}/jobs",
+        "Sec-Ch-Ua": '"Chromium";v="121", "Not A(Brand";v="99"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "User-Agent": USER_AGENT,
     }
 
 
 def _build_payload(country, offset, limit):
     """
-    The widgets payload Phenom expects. Based on what the Phenom-hosted
-    career sites send when a user paginates through search results.
+    The widgets payload Phenom expects when a user paginates through
+    search results.
     """
     payload = {
         "lang": "en_global",
@@ -61,8 +68,6 @@ def _build_payload(country, offset, limit):
         "locationData": {},
         "ddoKey": "refineSearch",
     }
-    # Some Phenom deployments require an explicit country filter in
-    # selected_fields rather than the top-level country key.
     if country and country.lower() != "global":
         payload["selected_fields"] = {"country": [country]}
     return payload
@@ -70,20 +75,45 @@ def _build_payload(country, offset, limit):
 
 def fetch_phenom(company_name, platform_id):
     host = platform_id["host"]
-    country = platform_id.get("country")  # optional fetch-time filter
+    country = platform_id.get("country")
     api_url = f"https://{host}/widgets"
     print(f"[{company_name}] calling {api_url}")
 
     all_jobs = []
     offset = 0
     page_size = 50
-    max_pages = 25  # 1250-job safety cap
+    max_pages = 25
     total_count = None
+
+    # Use a Session so cookies set by the first request (e.g. CloudFront's
+    # session token) are sent on subsequent ones. Some Phenom deployments
+    # set a cookie that gates further requests.
+    session = requests.Session()
+
+    # Warm-up GET to the public jobs page. This lets CloudFront/Phenom
+    # set whatever cookies it expects to see on the /widgets POST.
+    try:
+        warmup = session.get(
+            f"https://{host}/jobs",
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "User-Agent": USER_AGENT,
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+            },
+            timeout=REQUEST_TIMEOUT,
+        )
+        if warmup.status_code != 200:
+            print(f"[{company_name}] phenom warmup returned {warmup.status_code}")
+    except Exception as e:
+        print(f"[{company_name}] phenom warmup failed: {e}")
 
     for page in range(max_pages):
         payload = _build_payload(country, offset, page_size)
         try:
-            r = requests.post(
+            r = session.post(
                 api_url,
                 json=payload,
                 headers=_headers(host),
@@ -124,7 +154,6 @@ def fetch_phenom(company_name, platform_id):
             job_id = job.get("jobId") or job.get("jobSeqNo") or job.get("id") or ""
             title = (job.get("title") or "").strip()
 
-            # Build a location string similar to other scrapers: city, country.
             city = (job.get("city") or "").strip()
             state = (job.get("state") or "").strip()
             cntry = (job.get("country") or "").strip()
@@ -133,7 +162,6 @@ def fetch_phenom(company_name, platform_id):
 
             posted_on = job.get("postedDate") or job.get("createdDate") or ""
 
-            # Phenom canonical URL: /jobs/{jobSeqNo}
             seq = job.get("jobSeqNo") or job_id
             full_url = f"https://{host}/jobs/{seq}" if seq else f"https://{host}/jobs"
 
