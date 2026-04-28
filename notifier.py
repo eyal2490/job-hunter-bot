@@ -1,8 +1,5 @@
 """
 Telegram bot notifier.
-
-Sends a message per matching job, using the bot token and chat ID
-provided via environment variables (configured as GitHub Secrets).
 """
 
 import os
@@ -13,7 +10,6 @@ TELEGRAM_API_BASE = "https://api.telegram.org/bot{token}/sendMessage"
 
 
 def _escape(text):
-    """Escape characters that have special meaning in Telegram HTML mode."""
     if text is None:
         return ""
     return html.escape(str(text))
@@ -31,23 +27,39 @@ def send_job(job):
     title = _escape(job.get("title", "(no title)"))
     company = _escape(job.get("company", ""))
     location = _escape(job.get("location", ""))
+    posted = _escape(job.get("posted_on", ""))
     url = job.get("url", "")
 
-    text = (
-        f"🔔 <b>{title}</b>\n"
-        f"🏢 {company}\n"
-    )
+    # If the job says "Posted Today" or similar, flag it as hot.
+    # Workday strings: "Posted Today", "Posted Yesterday", "Posted X Days Ago"
+    posted_lower = (job.get("posted_on", "") or "").lower()
+    is_hot = "today" in posted_lower or "just posted" in posted_lower
+
+    if is_hot:
+        text = f"🔥 <b>BRAND NEW JOB - APPLY NOW!</b>\n\n"
+        text += f"<b>{title}</b>\n"
+    else:
+        text = f"🔔 <b>{title}</b>\n"
+
+    text += f"🏢 {company}\n"
     if location:
         text += f"📍 {location}\n"
-    if url:
-        text += f"\n<a href=\"{_escape(url)}\">צפה במשרה</a>"
+    if posted:
+        text += f"🕒 {posted}\n"
 
     payload = {
         "chat_id": chat_id,
         "text": text,
         "parse_mode": "HTML",
-        "disable_web_page_preview": False,
+        "disable_web_page_preview": True,
     }
+
+    if url:
+        payload["reply_markup"] = {
+            "inline_keyboard": [[
+                {"text": "🔗 Apply Now", "url": url}
+            ]]
+        }
 
     try:
         r = requests.post(TELEGRAM_API_BASE.format(token=token), json=payload, timeout=15)
@@ -61,7 +73,6 @@ def send_job(job):
 
 
 def send_status(text):
-    """Send a plain status message (used for run summaries / error reports)."""
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
