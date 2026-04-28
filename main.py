@@ -9,6 +9,13 @@ Fetches jobs from:
 
 Filters for relevance, deduplicates against SQLite store,
 and sends Telegram notifications for new matches.
+
+Dedup note: the dedup hash uses (company, url, title). This means the
+same job appearing on a company's direct careers site AND on LinkedIn
+will be notified twice (different URLs -> different hashes). That's
+intentional - we'd rather get a duplicate ping than miss a genuinely
+distinct opening that happens to share a title with another posting,
+which is a real scenario for student/intern roles.
 """
 import sys
 import traceback
