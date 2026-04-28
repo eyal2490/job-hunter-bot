@@ -2,7 +2,7 @@
 Configuration: companies to monitor, keyword filters, and runtime settings.
 """
 
-# ----- Direct-scrape companies (Workday, Oracle HCM, Apple direct, ...) -----
+# ----- Direct-scrape companies (Workday, Oracle HCM, Apple direct, Phenom, ...) -----
 # Each entry: (display_name, platform, platform_id_dict)
 # Companies can also appear in LINKEDIN_COMPANIES below — coverage between
 # the two sources is imperfect, and main.py's dedup uses (company, url, title)
@@ -22,6 +22,9 @@ COMPANIES = [
 
     # Apple's own careers site (server-side rendered HTML)
     ("Apple",             "apple_direct", {}),
+
+    # Phenom-hosted careers pages
+    ("Mobileye",          "phenom",       {"host": "careers.mobileye.com",                                    "country": "Israel"}),
 ]
 
 # ----- LinkedIn companies (LinkedIn guest API) -----
