@@ -3,26 +3,28 @@ Configuration: companies to monitor, keyword filters, and runtime settings.
 """
 
 # ----- Workday companies (direct careers page scraping) -----
+# All sourced from URLs your SIL shared - tenant/site/host extracted.
 COMPANIES = [
-    ("NVIDIA", "workday", {
-        "tenant": "nvidia",
-        "site": "NVIDIAExternalCareerSite",
-        "host": "nvidia.wd5.myworkdayjobs.com",
-    }),
+    ("NVIDIA",   "workday", {"tenant": "nvidia",            "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
+    ("Intel",    "workday", {"tenant": "intel",             "site": "External",                 "host": "intel.wd1.myworkdayjobs.com"}),
+    ("Marvell",  "workday", {"tenant": "marvell",           "site": "MarvellCareers",           "host": "marvell.wd1.myworkdayjobs.com"}),
+    ("Broadcom", "workday", {"tenant": "broadcom",          "site": "External_Career",          "host": "broadcom.wd1.myworkdayjobs.com"}),
+    ("Samsung",  "workday", {"tenant": "sec",               "site": "Samsung_Careers",          "host": "sec.wd3.myworkdayjobs.com"}),
+    ("Motorola", "workday", {"tenant": "motorolasolutions", "site": "Careers",                  "host": "motorolasolutions.wd5.myworkdayjobs.com"}),
 ]
 
-# ----- LinkedIn companies (LinkedIn guest API search) -----
-# We search LinkedIn for jobs at each of these companies.
-# Coverage is automatic - any company posting jobs on LinkedIn shows up.
+# ----- LinkedIn companies (LinkedIn guest API) -----
+# Used for companies NOT on Workday or where Workday isn't reliably reachable.
+# Includes your SIL's top priorities that aren't in COMPANIES above.
 LINKEDIN_COMPANIES = [
-    "NVIDIA",
+    "Google",
+    "Amazon",
     "Apple",
-    "Intel",
-    "Mobileye",
     "Qualcomm",
+    "Mobileye",
+    "Microsoft",
+    "Meta",
     "ARM",
-    "Marvell",
-    "Broadcom",
     "Tower Semiconductor",
     "Applied Materials",
     "KLA",
@@ -33,22 +35,20 @@ LINKEDIN_COMPANIES = [
     "Camtek",
     "Nova Measuring",
     "Wiliot",
-    "Rafael",
-    "Elbit Systems",
-    "IAI",
-    "Microsoft",
-    "Google",
-    "Meta",
-    "Amazon",
+    "Texas Instruments",
+    "Valens",
+    "Altair Semiconductor",
+    "Nuvoton",
+    "Renesas",
+    "Winbond",
+    "Cisco",
+    "MaxLinear",
+    "Infinidat",
     "Annapurna Labs",
 ]
 
-# LinkedIn time-posted-range (TPR) for searches:
-#   "r3600"   = last 1 hour    (best for catching brand-new jobs every 5 min)
-#   "r21600"  = last 6 hours
-#   "r86400"  = last 24 hours
-#   "r604800" = last week
-LINKEDIN_TIME_RANGE = "r3600"
+# 24-hour window: catches all jobs posted today, dedup ensures no duplicates
+LINKEDIN_TIME_RANGE = "r86400"
 
 # ----- Location filters -----
 LOCATION_KEYWORDS = [
@@ -69,36 +69,49 @@ LOCATION_KEYWORDS = [
     "rosh haayin", "ראש העין",
     "or yehuda", "אור יהודה",
     "matam", "מתם",
+    "hod hasharon", "הוד השרון",
+    "caesarea", "קיסריה",
+    "gedera", "גדרה",
 ]
 
-# ----- TIER 1: Student-level indicators (must appear in title) -----
+# ----- TIER 1: Student-level indicators (must be in title) -----
 STUDENT_LEVEL_TITLE_KEYWORDS = [
     "student", "intern", "internship",
     "סטודנט", "סטודנטית", "מתמחה",
     "working student", "part time", "part-time",
 ]
 
-# ----- TIER 2: EE-relevant field indicators -----
+# ----- TIER 2: SIL's specific fields (chip design / verification / analog / board) -----
+# Tighter than before - based on what your SIL told us he's looking for
 FIELD_RELEVANCE_KEYWORDS = [
+    # Chip design
+    "chip design", "asic", "vlsi", "rtl", "verilog", "systemverilog",
+    "soc", "silicon", "physical design", "digital design", "logic design",
+    "place and route", "synthesis", "timing", "floorplan",
+    "תכנון שבבים", "vlsi", "אסיק",
+
+    # Verification
+    "verification", "וריפיקציה", "ולידציה",
+    "validation", "uvm", "test bench", "testbench", "formal",
+
+    # Analog
+    "analog", "אנלוגי", "mixed signal", "mixed-signal",
+    "rf ", " rf", "rfic",
+
+    # Board design / hardware
+    "board design", "pcb", "layout",
     "hardware", "חומרה",
-    "fpga", "vlsi", "asic", "rtl", "verilog", "systemverilog",
-    "firmware", "embedded", "מוטמע",
-    "dsp", "rf", "analog", "אנלוגי",
-    "digital design", "physical design",
-    "verification", "וריפיקציה",
-    "silicon", "chip design", "soc",
-    "electrical", "חשמל", "אלקטרוניקה",
-    "signal processing", "signal integrity",
-    "communication", "תקשורת",
-    "low power", "power management",
+    "fpga",
+    "embedded", "מוטמע",
+    "firmware",
     "circuit", "מעגל",
-    "pcb", "layout",
-    "cpu", "gpu",
     "post silicon", "post-silicon",
-    "validation", "ולידציה",
+    "low power",
+    "power management",
+    "dsp",
+    "electrical engineer", "חשמל", "אלקטרוניקה",
 ]
 
-# ----- Negative title keywords -----
 NEGATIVE_TITLE_KEYWORDS = [
     "senior", "principal", "staff", "lead ", " lead", "manager", "director",
     "vp ", "vice president", "head of", "chief",
@@ -111,18 +124,14 @@ NEGATIVE_TITLE_KEYWORDS = [
     "recruiter", "recruiting",
 ]
 
-# ----- Negative description phrases -----
 NEGATIVE_DESCRIPTION_PHRASES = [
     "5+ years of experience", "7+ years of experience", "10+ years of experience",
     "minimum of 5 years", "minimum of 7 years", "minimum of 10 years",
     "at least 5 years", "at least 7 years", "at least 10 years",
     "phd required", "ph.d. required", "doctorate required",
     "phd in ", "ph.d. in ",
-    "full-time position", "full time position",
-    "this is a full-time", "this is a full time",
 ]
 
-# ----- Runtime settings -----
 DB_PATH = "seen_jobs.db"
 REQUEST_TIMEOUT = 20
 MAX_JOBS_PER_RUN = 30
