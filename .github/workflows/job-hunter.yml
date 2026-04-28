@@ -1,8 +1,9 @@
 name: Job Hunter
 
 on:
+  # Run every 5 minutes for fastest reaction time
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 concurrency:
