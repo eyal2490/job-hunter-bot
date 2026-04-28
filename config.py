@@ -2,27 +2,55 @@
 Configuration: companies to monitor, keyword filters, and runtime settings.
 """
 
-# ----- Companies to monitor -----
-# Currently active:
-#   - NVIDIA: works on Workday with Israel search filter
-#
-# Disabled (need different scraping approach):
-#   - Qualcomm: their wd12 endpoint requires auth (returns total=0 for guests)
-#   - ARM: uses Phenom (careers.arm.com), not Workday
-#   - Apple: custom careers system, not Workday
-#   - Intel: Phenom with strict anti-bot
-#   - Mobileye: Comeet API ID needs to be found
-
+# ----- Workday companies (direct careers page scraping) -----
 COMPANIES = [
     ("NVIDIA", "workday", {
         "tenant": "nvidia",
         "site": "NVIDIAExternalCareerSite",
         "host": "nvidia.wd5.myworkdayjobs.com",
-        "search_text": "Israel",
     }),
 ]
 
-# ----- Location filters (final check on our side) -----
+# ----- LinkedIn companies (LinkedIn guest API search) -----
+# We search LinkedIn for jobs at each of these companies.
+# Coverage is automatic - any company posting jobs on LinkedIn shows up.
+LINKEDIN_COMPANIES = [
+    "NVIDIA",
+    "Apple",
+    "Intel",
+    "Mobileye",
+    "Qualcomm",
+    "ARM",
+    "Marvell",
+    "Broadcom",
+    "Tower Semiconductor",
+    "Applied Materials",
+    "KLA",
+    "Cadence",
+    "Synopsys",
+    "Hailo",
+    "Innoviz",
+    "Camtek",
+    "Nova Measuring",
+    "Wiliot",
+    "Rafael",
+    "Elbit Systems",
+    "IAI",
+    "Microsoft",
+    "Google",
+    "Meta",
+    "Amazon",
+    "Annapurna Labs",
+]
+
+# LinkedIn time-posted-range (TPR) for searches:
+#   "r3600"   = last 1 hour    (best for catching brand-new jobs every 5 min)
+#   "r21600"  = last 6 hours
+#   "r86400"  = last 24 hours
+#   "r604800" = last week
+LINKEDIN_TIME_RANGE = "r3600"
+
+# ----- Location filters -----
 LOCATION_KEYWORDS = [
     "israel", "ישראל",
     "tel aviv", "תל אביב", "תל-אביב",
@@ -97,5 +125,5 @@ NEGATIVE_DESCRIPTION_PHRASES = [
 # ----- Runtime settings -----
 DB_PATH = "seen_jobs.db"
 REQUEST_TIMEOUT = 20
-MAX_JOBS_PER_RUN = 20
+MAX_JOBS_PER_RUN = 30
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
