@@ -6,7 +6,8 @@ Fetches jobs from:
      Samsung, Motorola, ...)
   2. Oracle Recruiting Cloud HCM-based careers pages (Texas Instruments, ...)
   3. Apple direct careers HTML scraping (Apple)
-  4. LinkedIn guest API for many companies at once
+  4. Phenom-hosted careers pages (Mobileye, ...)
+  5. LinkedIn guest API for many companies at once
 
 Filters for relevance, deduplicates against SQLite store,
 and sends Telegram notifications for new matches.
@@ -29,6 +30,7 @@ from notifier import send_job, send_status
 from scrapers.workday import fetch_workday
 from scrapers.oracle_hcm import fetch_oracle_hcm
 from scrapers.apple import fetch_apple
+from scrapers.phenom import fetch_phenom
 from scrapers.linkedin_scraper import fetch_linkedin_all
 
 
@@ -39,6 +41,8 @@ def fetch_company(name, platform, platform_id):
         return fetch_oracle_hcm(name, platform_id)
     if platform == "apple_direct":
         return fetch_apple(name)
+    if platform == "phenom":
+        return fetch_phenom(name, platform_id)
     print(f"[{name}] unknown platform: {platform}")
     return []
 
@@ -53,7 +57,7 @@ def run():
     notified = 0
     errors = []
 
-    # ----- Per-company scrapers (Workday, Oracle HCM, Apple direct, ...) -----
+    # ----- Per-company scrapers (Workday, Oracle HCM, Apple direct, Phenom, ...) -----
     for name, platform, platform_id in COMPANIES:
         print(f"\n=== {name} ({platform}) ===")
         try:
