@@ -5,7 +5,8 @@ Fetches jobs from:
   1. Workday-based careers pages (NVIDIA, Intel, Marvell, Broadcom,
      Samsung, Motorola, ...)
   2. Oracle Recruiting Cloud HCM-based careers pages (Texas Instruments, ...)
-  3. LinkedIn guest API for many companies at once
+  3. Apple direct careers HTML scraping (Apple)
+  4. LinkedIn guest API for many companies at once
 
 Filters for relevance, deduplicates against SQLite store,
 and sends Telegram notifications for new matches.
@@ -27,6 +28,7 @@ from notifier import send_job, send_status
 
 from scrapers.workday import fetch_workday
 from scrapers.oracle_hcm import fetch_oracle_hcm
+from scrapers.apple import fetch_apple
 from scrapers.linkedin_scraper import fetch_linkedin_all
 
 
@@ -35,6 +37,8 @@ def fetch_company(name, platform, platform_id):
         return fetch_workday(name, platform_id)
     if platform == "oracle_hcm":
         return fetch_oracle_hcm(name, platform_id)
+    if platform == "apple_direct":
+        return fetch_apple(name)
     print(f"[{name}] unknown platform: {platform}")
     return []
 
@@ -49,7 +53,7 @@ def run():
     notified = 0
     errors = []
 
-    # ----- Source 1+2: per-company scrapers (Workday, Oracle HCM, ...) -----
+    # ----- Per-company scrapers (Workday, Oracle HCM, Apple direct, ...) -----
     for name, platform, platform_id in COMPANIES:
         print(f"\n=== {name} ({platform}) ===")
         try:
@@ -62,7 +66,7 @@ def run():
         notified += _process_jobs(name, jobs, notified)
         total_fetched += len(jobs)
 
-    # ----- Source 3: LinkedIn (all configured companies) -----
+    # ----- LinkedIn (all configured companies) -----
     print(f"\n=== LinkedIn ===")
     try:
         linkedin_jobs = fetch_linkedin_all()
