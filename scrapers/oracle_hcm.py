@@ -14,6 +14,11 @@ Critical: results are paginated 50 at a time, sorted newest-first by
 POSTING_DATES_DESC. We fetch many pages so main.py can apply its own
 Israel filter the same way it does for Workday.
 
+The `finder` query parameter uses a specific format documented by Oracle:
+    finder=<finderName>;<param>=<value>,<param>=<value>,...
+Note: SEMICOLON between the finder name and first param, COMMAS between
+subsequent params. Getting this wrong yields a 400 "is not valid" error.
+
 Currently used by:
     Texas Instruments  (host=edbz.fa.us2.oraclecloud.com, site=CX)
 """
@@ -31,6 +36,18 @@ def _headers(host):
     }
 
 
+def _build_finder(site, offset, limit):
+    # Format per Oracle docs: finderName;param=val,param=val,...
+    # Semicolon after finder name, commas between params.
+    params = [
+        f"siteNumber={site}",
+        f"limit={limit}",
+        f"offset={offset}",
+        "sortBy=POSTING_DATES_DESC",
+    ]
+    return "findReqs;" + ",".join(params)
+
+
 def fetch_oracle_hcm(company_name, platform_id):
     host = platform_id["host"]
     site = platform_id["site"]
@@ -46,21 +63,9 @@ def fetch_oracle_hcm(company_name, platform_id):
     max_pages = 25
 
     for page in range(max_pages):
-        # Oracle's `finder` parameter encodes the search.
-        # Empty keyword + sortBy=POSTING_DATES_DESC = all jobs, newest first.
-        finder = ",".join([
-            "findReqs",
-            f"siteNumber={site}",
-            "facetsList=LOCATIONS;WORK_LOCATIONS;WORKPLACE_TYPES;TITLES;"
-            "CATEGORIES;ORGANIZATIONS;POSTING_DATES;FLEX_FIELDS",
-            f"limit={page_size}",
-            f"offset={offset}",
-            "sortBy=POSTING_DATES_DESC",
-        ])
         params = {
             "onlyData": "true",
-            "expand": "requisitionList.secondaryLocations,requisitionList.requisitionFlexFields",
-            "finder": finder,
+            "finder": _build_finder(site, offset, page_size),
         }
 
         try:
@@ -102,21 +107,7 @@ def fetch_oracle_hcm(company_name, platform_id):
         for req in postings:
             req_id = req.get("Id") or req.get("id") or ""
             title = req.get("Title") or ""
-            primary = (req.get("PrimaryLocation") or "").strip()
-
-            # Fold secondary locations into the location string so main.py's
-            # "israel" substring check picks up jobs primarily listed elsewhere
-            # but also offered in Israel.
-            secondary_names = [
-                str(sec.get("Name") or "").strip()
-                for sec in (req.get("secondaryLocations") or [])
-            ]
-            secondary_names = [s for s in secondary_names if s and s != primary]
-            if secondary_names:
-                location = primary + " | " + ", ".join(secondary_names)
-            else:
-                location = primary
-
+            location = (req.get("PrimaryLocation") or "").strip()
             posted_on = req.get("PostedDate") or req.get("PostingStartDate") or ""
 
             if req_id:
