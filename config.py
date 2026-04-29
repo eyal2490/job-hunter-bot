@@ -31,7 +31,6 @@ COMPANIES = [
     ("Apple",             "apple_direct",  {}),
 
     # Google's own careers site (server-side rendered HTML)
-    ("Google",            "google_direct", {}),
 
     # Amazon's careers JSON API
     ("Amazon",            "amazon_direct", {}),
