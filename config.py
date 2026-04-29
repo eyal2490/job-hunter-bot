@@ -2,36 +2,42 @@
 Configuration: companies to monitor, keyword filters, and runtime settings.
 """
 
-# ----- Direct-scrape companies (Workday, Oracle HCM, Apple direct, Phenom, Eightfold, ...) -----
+# ----- Direct-scrape companies -----
 # Each entry: (display_name, platform, platform_id_dict)
 # Companies can also appear in LINKEDIN_COMPANIES below — coverage between
 # the two sources is imperfect, and main.py's dedup uses (company, url, title)
 # so a job that appears on both sources is intentionally surfaced from each
 # (different URLs -> different hashes).
 #
-# Mobileye note: Mobileye sits behind CloudFront bot detection that we
-# can't currently bypass without a headless browser, so the direct scraper
-# returns 403. We keep the entry in case the bot detection relaxes;
-# coverage in the meantime comes from LinkedIn.
+# Notes:
+# - Mobileye sits behind CloudFront bot detection that we can't bypass
+#   without a headless browser. Direct scraper currently 403s. Kept in
+#   case detection relaxes; LinkedIn covers Mobileye in the meantime.
+# - Qualcomm's Eightfold endpoint also returns 403 ("Not authorized for
+#   PCSX"). Kept for the same reason.
 COMPANIES = [
     # Workday-based careers pages
-    ("NVIDIA",            "workday",      {"tenant": "nvidia",            "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
-    ("Intel",             "workday",      {"tenant": "intel",             "site": "External",                 "host": "intel.wd1.myworkdayjobs.com"}),
-    ("Marvell",           "workday",      {"tenant": "marvell",           "site": "MarvellCareers",           "host": "marvell.wd1.myworkdayjobs.com"}),
-    ("Broadcom",          "workday",      {"tenant": "broadcom",          "site": "External_Career",          "host": "broadcom.wd1.myworkdayjobs.com"}),
-    ("Samsung",           "workday",      {"tenant": "sec",               "site": "Samsung_Careers",          "host": "sec.wd3.myworkdayjobs.com"}),
-    ("Motorola",          "workday",      {"tenant": "motorolasolutions", "site": "Careers",                  "host": "motorolasolutions.wd5.myworkdayjobs.com"}),
+    ("NVIDIA",            "workday",       {"tenant": "nvidia",            "site": "NVIDIAExternalCareerSite", "host": "nvidia.wd5.myworkdayjobs.com"}),
+    ("Intel",             "workday",       {"tenant": "intel",             "site": "External",                 "host": "intel.wd1.myworkdayjobs.com"}),
+    ("Marvell",           "workday",       {"tenant": "marvell",           "site": "MarvellCareers",           "host": "marvell.wd1.myworkdayjobs.com"}),
+    ("Broadcom",          "workday",       {"tenant": "broadcom",          "site": "External_Career",          "host": "broadcom.wd1.myworkdayjobs.com"}),
+    ("Samsung",           "workday",       {"tenant": "sec",               "site": "Samsung_Careers",          "host": "sec.wd3.myworkdayjobs.com"}),
+    ("Motorola",          "workday",       {"tenant": "motorolasolutions", "site": "Careers",                  "host": "motorolasolutions.wd5.myworkdayjobs.com"}),
 
     # Oracle Recruiting Cloud HCM-based careers pages
-    ("Texas Instruments", "oracle_hcm",   {"host": "edbz.fa.us2.oraclecloud.com",                              "site": "CX"}),
+    ("Texas Instruments", "oracle_hcm",    {"host": "edbz.fa.us2.oraclecloud.com",                              "site": "CX"}),
 
     # Apple's own careers site (server-side rendered HTML)
-    ("Apple",             "apple_direct", {}),
+    ("Apple",             "apple_direct",  {}),
 
-    # Phenom-hosted careers pages (Mobileye currently 403s — see note above)
-    ("Mobileye",          "phenom",       {"host": "careers.mobileye.com",                                    "country": "Israel"}),
+    # Google's own careers site (server-side rendered HTML)
+    ("Google",            "google_direct", {}),
 
-    # Eightfold AI-hosted careers pages
+    # Phenom-hosted careers pages (Mobileye currently 403s)
+    ("Mobileye",          "phenom",        {"host": "careers.mobileye.com",                                    "country": "Israel"}),
+
+    # Eightfold AI-hosted careers pages (Qualcomm currently 403s)
+    ("Qualcomm",          "eightfold",     {"tenant": "qualcomm",          "domain": "qualcomm.com",           "location": "Israel"}),
 ]
 
 # ----- LinkedIn companies (LinkedIn guest API) -----
