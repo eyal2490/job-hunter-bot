@@ -6,10 +6,10 @@ Fetches jobs from:
      Samsung, Motorola, ...)
   2. Oracle Recruiting Cloud HCM-based careers pages (Texas Instruments, ...)
   3. Apple direct careers HTML scraping (Apple)
-  4. Google direct careers HTML scraping (Google)
-  5. Amazon direct careers JSON API (Amazon)
+  4. Amazon direct careers JSON API (Amazon)
+  5. Small-Israel-company custom HTML scrapers (Innoviz, Valens, Altair)
   6. Phenom-hosted careers pages (Mobileye - currently 403s behind
-     CloudFront but kept in case bot detection is relaxed in future)
+     CloudFront but kept in case bot detection is relaxed)
   7. Eightfold AI-hosted careers pages (Qualcomm - currently 403s,
      kept for the same reason)
   8. LinkedIn guest API for many companies at once
@@ -35,8 +35,10 @@ from notifier import send_job, send_status
 from scrapers.workday import fetch_workday
 from scrapers.oracle_hcm import fetch_oracle_hcm
 from scrapers.apple import fetch_apple
-from scrapers.google import fetch_google
 from scrapers.amazon import fetch_amazon
+from scrapers.innoviz import fetch_innoviz
+from scrapers.valens import fetch_valens
+from scrapers.altair import fetch_altair
 from scrapers.phenom import fetch_phenom
 from scrapers.eightfold import fetch_eightfold
 from scrapers.linkedin_scraper import fetch_linkedin_all
@@ -49,10 +51,14 @@ def fetch_company(name, platform, platform_id):
         return fetch_oracle_hcm(name, platform_id)
     if platform == "apple_direct":
         return fetch_apple(name)
-    if platform == "google_direct":
-        return fetch_google(name)
     if platform == "amazon_direct":
         return fetch_amazon(name)
+    if platform == "innoviz_direct":
+        return fetch_innoviz(name)
+    if platform == "valens_direct":
+        return fetch_valens(name)
+    if platform == "altair_direct":
+        return fetch_altair(name)
     if platform == "phenom":
         return fetch_phenom(name, platform_id)
     if platform == "eightfold":
