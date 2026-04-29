@@ -7,11 +7,12 @@ Fetches jobs from:
   2. Oracle Recruiting Cloud HCM-based careers pages (Texas Instruments, ...)
   3. Apple direct careers HTML scraping (Apple)
   4. Google direct careers HTML scraping (Google)
-  5. Phenom-hosted careers pages (Mobileye - currently 403s behind
+  5. Amazon direct careers JSON API (Amazon)
+  6. Phenom-hosted careers pages (Mobileye - currently 403s behind
      CloudFront but kept in case bot detection is relaxed in future)
-  6. Eightfold AI-hosted careers pages (Qualcomm - currently 403s,
+  7. Eightfold AI-hosted careers pages (Qualcomm - currently 403s,
      kept for the same reason)
-  7. LinkedIn guest API for many companies at once
+  8. LinkedIn guest API for many companies at once
 
 Filters for relevance, deduplicates against SQLite store,
 and sends Telegram notifications for new matches.
@@ -35,6 +36,7 @@ from scrapers.workday import fetch_workday
 from scrapers.oracle_hcm import fetch_oracle_hcm
 from scrapers.apple import fetch_apple
 from scrapers.google import fetch_google
+from scrapers.amazon import fetch_amazon
 from scrapers.phenom import fetch_phenom
 from scrapers.eightfold import fetch_eightfold
 from scrapers.linkedin_scraper import fetch_linkedin_all
@@ -49,6 +51,8 @@ def fetch_company(name, platform, platform_id):
         return fetch_apple(name)
     if platform == "google_direct":
         return fetch_google(name)
+    if platform == "amazon_direct":
+        return fetch_amazon(name)
     if platform == "phenom":
         return fetch_phenom(name, platform_id)
     if platform == "eightfold":
