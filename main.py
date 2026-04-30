@@ -129,7 +129,9 @@ def _process_jobs(source_label, jobs, current_notified):
             rel, reason = is_relevant(j)
             marker = "✓" if rel else "✗"
             posted = j.get("posted_on", "")
+            url = j.get("url", "")
             print(f"    {marker} [{posted}] {j.get('title', '?')} @ {j.get('company', '?')} - {j.get('location', '?')}")
+            print(f"        {url}")
 
     sent_count = 0
     for job in jobs:
