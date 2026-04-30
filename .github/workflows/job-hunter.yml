@@ -1,9 +1,10 @@
 name: Job Hunter
 
 on:
-  # Every 15 minutes - balance freshness with LinkedIn rate limits
-  schedule:
-    - cron: "*/15 * * * *"
+  # Triggered externally by cron-job.org every 15 minutes.
+  # GitHub's built-in scheduler was removed because it is unreliable
+  # for private/low-activity repos and was causing duplicate runs
+  # when combined with the external cron.
   workflow_dispatch:
 
 concurrency:
