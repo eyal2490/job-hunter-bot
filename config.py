@@ -1,6 +1,6 @@
-“””
+"""
 Configuration: companies to monitor, keyword filters, and runtime settings.
-“””
+"""
 
 # —– Direct-scrape companies —–
 
